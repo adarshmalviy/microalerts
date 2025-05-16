@@ -1,5 +1,6 @@
 import requests
 import json
+from .formatter import build_slack_blocks
 
 def send_alert(
     message: str,
@@ -7,10 +8,10 @@ def send_alert(
     client: str,
     service: str,
     env: str = "dev",
-    level: str = "error"
+    level: str = "error",
 ) -> None:
     """
-    Send a formatted alert message to a Slack webhook.
+    Send a Slack alert using Slack Blocks formatting.
 
     Args:
         message (str): The main error or alert message.
@@ -20,22 +21,15 @@ def send_alert(
         env (str): Environment (e.g., dev, prod).
         level (str): Log level (info, warning, error).
     """
-    emoji = {
-        "error": ":x:",
-        "warning": ":warning:",
-        "info": ":information_source:"
-    }.get(level, ":grey_question:")
-
-    payload = {
-        "text": f"{emoji} *[{client.upper()} | {service.upper()} | {env.upper()}]*\n{message}"
-    }
+    blocks = build_slack_blocks(message, client, service, env, level)
+    payload = {"blocks": blocks}
 
     try:
         response = requests.post(
             webhook_url,
             data=json.dumps(payload),
             headers={"Content-Type": "application/json"},
-            timeout=5
+            timeout=5,
         )
         if response.status_code != 200:
             print(f"Slack alert failed: {response.status_code}, {response.text}")
